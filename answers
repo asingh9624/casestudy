@@ -1,0 +1,145 @@
+Query 1
+SELECT year, SUM(net_revenue) AS total_revenue
+FROM dbo.casestudy$
+GROUP BY year
+
+
+Query 2
+SELECT c1.year, SUM(c1.net_revenue) AS new_customer_revenue
+FROM dbo.casestudy$ AS c1
+LEFT JOIN dbo.casestudy$ AS c2 
+  ON c1.customer_email = c2.customer_email 
+  AND c2.year = c1.year - 1
+WHERE c1.year IN (2016, 2017)
+  AND c2.customer_email IS NULL
+GROUP BY c1.year;
+
+
+Query 3
+SELECT 
+    c1.year,
+    SUM(c1.net_revenue) - SUM(c2.net_revenue) AS existing_customer_growth
+FROM 
+    dbo.casestudy$ AS c1
+INNER JOIN 
+    dbo.casestudy$ AS c2 
+ON 
+    c1.customer_email = c2.customer_email
+WHERE 
+    c1.year = c2.year + 1 
+GROUP BY 
+    c1.year;
+
+Query 4
+SELECT 
+    c2.year,
+    SUM(c2.net_revenue) AS lost_revenue
+FROM 
+    dbo.casestudy$ AS c2
+LEFT JOIN 
+    dbo.casestudy$ AS c1 
+ON 
+    c2.customer_email = c1.customer_email 
+    AND c1.year = c2.year + 1
+WHERE 
+    c2.year IS NOT NULL
+    AND c1.customer_email IS NULL
+GROUP BY 
+    c2.year;
+
+Query 5
+SELECT 
+    c1.year, 
+    SUM(c1.net_revenue) AS existing_customer_revenue
+FROM 
+    dbo.casestudy$ AS c1
+INNER JOIN 
+    dbo.casestudy$ AS c2 
+ON 
+    c1.customer_email = c2.customer_email
+WHERE 
+    c1.year IN (2015, 2016, 2017)
+    AND c2.year = c1.year - 1
+GROUP BY 
+    c1.year;
+
+Query 6
+SELECT 
+    c2.year, 
+    SUM(c2.net_revenue) AS existing_customer_revenue_prior_year
+FROM 
+    dbo.casestudy$ AS c1
+INNER JOIN 
+    dbo.casestudy$ AS c2 
+ON 
+    c1.customer_email = c2.customer_email
+WHERE 
+    c1.year = c2.year + 1 
+GROUP BY 
+    c2.year;
+
+
+Query 7
+SELECT 
+    year, COUNT(DISTINCT customer_email) AS total_customers_current_year
+FROM 
+    dbo.casestudy$
+GROUP BY year
+
+Query 8
+SELECT 
+    year,
+    COUNT(DISTINCT customer_email) AS total_customers_previous_year
+FROM 
+    dbo.casestudy$
+WHERE 
+    year IN (2016, 2017)
+GROUP BY 
+    year;
+
+Query 9
+SELECT 
+    year,
+    COUNT(customer_email) AS new_customers
+FROM 
+    dbo.casestudy$ cs
+WHERE 
+    year IN (2016, 2017)
+    AND customer_email IN (
+        SELECT customer_email
+        FROM dbo.casestudy$
+        WHERE year = (
+            SELECT MIN(year)
+            FROM dbo.casestudy$
+            WHERE customer_email = cs.customer_email
+        )
+    )
+GROUP BY 
+    year
+ORDER BY 
+    year;
+
+Query 10
+WITH PreviousYearCustomers AS (
+    SELECT DISTINCT customer_email, year
+    FROM dbo.casestudy$
+    WHERE year IN (2015, 2016)
+),
+CustomersLost AS (
+    SELECT DISTINCT c1.customer_email, c1.year
+    FROM dbo.casestudy$ AS c1
+    LEFT JOIN PreviousYearCustomers AS c2
+        ON c1.customer_email = c2.customer_email
+        AND c2.year = c1.year - 1
+    WHERE c1.year IN (2016, 2017)
+    AND c2.customer_email IS NULL
+)
+SELECT 
+    year,
+    COUNT(DISTINCT customer_email) AS lost_customers
+FROM 
+    CustomersLost
+GROUP BY 
+    year;
+
+
